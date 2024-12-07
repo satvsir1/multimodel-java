@@ -1,0 +1,92 @@
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+      - bugfix/*
+
+variables:
+  - group: dap-platform-vars
+  - name: solution
+    value: '**/*.sln'
+  - name: buildPlatform
+    value: 'Any CPU'
+  - name: buildConfiguration
+    value: 'Release'
+  - name: mavenCacheFolder
+    value: $(Pipeline.Workspace)/.m2/repository
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildSharedModules
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Cache@2
+      inputs:
+        key: 'maven | "$(Agent.OS)" | dap-shared/pom.xml'
+        restoreKeys: |
+          maven | "$(Agent.OS)"
+        path: $(mavenCacheFolder)
+      displayName: Cache Maven local repo
+
+    - task: Maven@3
+      inputs:
+        mavenPomFile: 'dap-shared/pom.xml'
+        goals: 'clean install'
+        options: '-B'
+      displayName: 'Build Shared Modules'
+
+- stage: ServiceBuild
+  dependsOn: Build
+  jobs:
+  - parallel:
+    - job: BuildEdcService
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+      - template: azure-pipelines/templates/service-build-template.yml
+        parameters:
+          serviceName: 'dap-edc-service'
+
+    - job: BuildRdmService
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+      - template: azure-pipelines/templates/service-build-template.yml
+        parameters:
+          serviceName: 'dap-rdm-service'
+
+    - job: BuildDqdaService
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+      - template: azure-pipelines/templates/service-build-template.yml
+        parameters:
+          serviceName: 'dap-dqda-service'
+
+    - job: BuildMetadataService
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+      - template: azure-pipelines/templates/service-build-template.yml
+        parameters:
+          serviceName: 'dap-metadata-service'
+
+- stage: Deploy
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployToProduction
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            inputs:
+              azureSubscription: 'Azure Subscription'
+              appName: 'dap-platform'
+              containers: '$(containerRegistry)/dap-platform:$(Build.BuildId)'

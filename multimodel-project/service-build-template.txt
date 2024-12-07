@@ -1,0 +1,35 @@
+parameters:
+  serviceName: ''
+
+steps:
+- task: Cache@2
+  inputs:
+    key: 'maven | "$(Agent.OS)" | dap-services/${{ parameters.serviceName }}/pom.xml'
+    restoreKeys: |
+      maven | "$(Agent.OS)"
+    path: $(mavenCacheFolder)
+  displayName: 'Cache Maven local repo for ${{ parameters.serviceName }}'
+
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'dap-services/${{ parameters.serviceName }}/pom.xml'
+    goals: 'clean package'
+    options: '-B'
+  displayName: 'Build ${{ parameters.serviceName }}'
+
+- task: Docker@2
+  inputs:
+    containerRegistry: '$(dockerRegistry)'
+    repository: '${{ parameters.serviceName }}'
+    command: 'buildAndPush'
+    Dockerfile: 'dap-services/${{ parameters.serviceName }}/Dockerfile'
+    tags: |
+      $(Build.BuildId)
+      latest
+  displayName: 'Build and Push Docker Image for ${{ parameters.serviceName }}'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: 'dap-services/${{ parameters.serviceName }}/target/*.jar'
+    artifact: '${{ parameters.serviceName }}-artifacts'
+  displayName: 'Publish Artifacts for ${{ parameters.serviceName }}'

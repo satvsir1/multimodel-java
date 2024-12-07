@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  discovery-server:
+    image: dap-platform/discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - dap-network
+
+  config-server:
+    image: dap-platform/config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      - discovery-server
+    networks:
+      - dap-network
+
+  edc-service:
+    image: dap-platform/dap-edc-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - dap-network
+
+  rdm-service:
+    image: dap-platform/dap-rdm-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - dap-network
+
+  # Add other services similarly
+
+networks:
+  dap-network:
+    driver: bridge
