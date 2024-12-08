@@ -1,0 +1,436 @@
+Project Structure:
+/user-management
+├── pom.xml
+└── src
+    └── main
+        ├── java
+        │   └── com
+        │       └── example
+        │           └── usermanagement
+        │               ├── UserManagementApplication.java
+        │               ├── config
+        │               │   └── OpenApiConfig.java
+        │               ├── controller
+        │               │   └── UserController.java
+        │               ├── dto
+        │               │   └── UserDto.java
+        │               ├── exception
+        │               │   ├── GlobalExceptionHandler.java
+        │               │   └── UserNotFoundException.java
+        │               ├── model
+        │               │   └── User.java
+        │               ├── repository
+        │               │   └── UserRepository.java
+        │               └── service
+        │                   └── UserService.java
+        └── resources
+            ├── application.properties
+            └── data.sql
+
+// 1. POM.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>user-management</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>User Management API</name>
+
+    <properties>
+        <java.version>17</java.version>
+        <springdoc.version>2.3.0</springdoc.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starters -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!-- Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+// 2. UserManagementApplication.java
+package com.example.usermanagement;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class UserManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UserManagementApplication.class, args);
+    }
+}
+
+// 3. OpenApiConfig.java
+package com.example.usermanagement.config;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+            .info(new Info()
+                .title("User Management API")
+                .version("1.0")
+                .description("API for managing user operations")
+                .contact(new Contact()
+                    .name("Support Team")
+                    .email("support@example.com")
+                )
+            );
+    }
+}
+
+// 4. User.java (Entity)
+package com.example.usermanagement.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    private String name;
+
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
+    @Column(unique = true)
+    private String email;
+}
+
+// 5. UserDto.java
+package com.example.usermanagement.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserDto {
+    @Schema(description = "User ID", example = "1")
+    private Long id;
+
+    @Schema(description = "User's full name", example = "John Doe")
+    @NotBlank(message = "Name is required")
+    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    private String name;
+
+    @Schema(description = "User's email address", example = "john.doe@example.com")
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
+    private String email;
+}
+
+// 6. UserRepository.java
+package com.example.usermanagement.repository;
+
+import com.example.usermanagement.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    boolean existsByEmail(String email);
+}
+
+// 7. UserService.java
+package com.example.usermanagement.service;
+
+import com.example.usermanagement.dto.UserDto;
+import com.example.usermanagement.exception.UserNotFoundException;
+import com.example.usermanagement.model.User;
+import com.example.usermanagement.repository.UserRepository;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+
+    public UserDto createUser(UserDto userDto) {
+        // Check if email already exists
+        if (userRepository.existsByEmail(userDto.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+
+        User user = new User();
+        BeanUtils.copyProperties(userDto, user);
+        User savedUser = userRepository.save(user);
+
+        UserDto savedUserDto = new UserDto();
+        BeanUtils.copyProperties(savedUser, savedUserDto);
+        return savedUserDto;
+    }
+
+    public UserDto getUserById(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        UserDto userDto = new UserDto();
+        BeanUtils.copyProperties(user, userDto);
+        return userDto;
+    }
+
+    public List<UserDto> getAllUsers() {
+        return userRepository.findAll().stream()
+            .map(user -> {
+                UserDto userDto = new UserDto();
+                BeanUtils.copyProperties(user, userDto);
+                return userDto;
+            })
+            .collect(Collectors.toList());
+    }
+
+    public UserDto updateUser(Long id, UserDto userDto) {
+        User existingUser = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        existingUser.setName(userDto.getName());
+        existingUser.setEmail(userDto.getEmail());
+
+        User updatedUser = userRepository.save(existingUser);
+
+        UserDto updatedUserDto = new UserDto();
+        BeanUtils.copyProperties(updatedUser, updatedUserDto);
+        return updatedUserDto;
+    }
+
+    public void deleteUser(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        userRepository.delete(user);
+    }
+}
+
+// 8. UserController.java
+package com.example.usermanagement.controller;
+
+import com.example.usermanagement.dto.UserDto;
+import com.example.usermanagement.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/users")
+@Tag(name = "User Management", description = "APIs for user-related operations")
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    @PostMapping
+    @Operation(
+        summary = "Create a new user",
+        description = "Adds a new user to the system",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "User created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid user data")
+        }
+    )
+    public ResponseEntity<UserDto> createUser(
+        @Valid @RequestBody UserDto userDto
+    ) {
+        UserDto createdUser = userService.createUser(userDto);
+        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(
+        summary = "Get user by ID",
+        description = "Retrieves a specific user by their unique identifier"
+    )
+    public ResponseEntity<UserDto> getUserById(
+        @Parameter(description = "Unique identifier of the user", example = "1")
+        @PathVariable Long id
+    ) {
+        UserDto userDto = userService.getUserById(id);
+        return ResponseEntity.ok(userDto);
+    }
+
+    @GetMapping
+    @Operation(
+        summary = "List all users",
+        description = "Retrieves all users in the system"
+    )
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+        summary = "Update user",
+        description = "Updates an existing user's information"
+    )
+    public ResponseEntity<UserDto> updateUser(
+        @PathVariable Long id,
+        @Valid @RequestBody UserDto userDto
+    ) {
+        UserDto updatedUser = userService.updateUser(id, userDto);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Delete user",
+        description = "Removes a user from the system"
+    )
+    public ResponseEntity<Void> deleteUser(
+        @PathVariable Long id
+    ) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+// 9. GlobalExceptionHandler.java
+package com.example.usermanagement.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<String> handleUserNotFoundException(UserNotFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+}
+
+// 10. UserNotFoundException.java
+package com.example.usermanagement.exception;
+
+public class UserNotFoundException extends RuntimeException {
+    public UserNotFoundException(String message) {
+        super(message);
+    }
+}
+
+// 11. application.properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.h2.console.enabled=true
+
+# OpenAPI Configuration
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.api-docs.path=/v3/api-docs
+
+# Logging
+logging.level.org.springframework=INFO
+logging.level.com.example=DEBUG
