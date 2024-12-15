@@ -1,0 +1,71 @@
+
+1. **Conversion/Transformer Application:**
+   - Extract metadata from the source input.
+   - Map the metadata to a common data structure (Java Object).
+   - Convert the mapped data structure into the appropriate format (JSON).
+   - The application should normalize and map different metadata types into a unified template for ingestion by Collibra.
+
+2. **Pre-validation Queue:**
+   - Stores the JSON message in a unified template, ensuring it is source-agnostic.
+
+3. **Validator Application:**
+   - Retrieves validation rules from the rule file (Blob Storage) based on the source.
+   - Applies the rules to the incoming messages from the queue and either sends invalid messages to the Invalid Data Queue or moves them to the Post-validation Queue if they pass all checks.
+
+4. **Invalid Data Queue:**
+   - Holds messages that fail the validation rules.
+
+5. **Blob Exporter:**
+   - Reads messages from connected queues and stores them as files in Blob Storage for long-term retention. These files can be used for analysis or root-cause investigation.
+   - Triggers a Logic App or Email Sender to notify configured recipients.
+
+6. **Logic App or Email Sender:**
+   - If using Azure Logic App, it is triggered by the Blob Exporter, eliminating the need for custom code. The managed service sends email notifications.
+   - If utilizing SMTP servers, a custom app will be developed to send the email notifications.
+
+7. **Post-validation Queue:**
+   - Holds messages that have passed validation.
+
+8. **Sync Application:**
+   - Reads messages from the Post-validation Queue.
+   - Inserts the normalized JSON data as data assets into the Collibra platform using the Collibra ingestion library.
+   - Optionally, a simulation can be run before the actual insertion.
+
+9. **Simulation Errors or Sync Queue:**
+   - Stores any errors encountered during the simulation process in the Sync Application, which can later be retrieved by the Blob Exporter for email notification.
+   - Also holds details of successful insertions, which can be used for user notifications.
+==================================================================================================================================================================================================
+Responsibilities:
+1) Conversion or Transformer app:
+	- Read the metadata from the source input
+	- Mapping of the metadata to common data structure(Java Object)
+	- Convert the data structure into the appropriate format(JSON)
+Basically, we need to write application to normalize and map all the different metadata typesinto a unified template that can be ingested by Collibra.
+
+2) Pre-validation Queue: This will hold the JSON string message in unified template which will be source agnostic.
+
+3) Validator app: 
+	- This will fetch the rules from the Rule file(Blob Storage) as per source.
+	- Apply these rules to incoming message from the queue and either put invalid message to invalid data queueor post validation queue if all rules pass.
+
+4) Invalid Data Queue: Holds the data which doesnot pass validation rules.
+
+5) Blob Exporter:
+	- Read the message from connected queues and store them in files located in Blob storage for permanent storage, these can be used for analysisor Root-cause analysis.
+	- It also Triggers the logic app or Email Sender app to send the notification to configured recepients.
+
+6) Logic app or Email Sender:
+	- If we use Azure service logic app then we trigger it from the Blob exporter and there is no code to write. We'll leverageAzure managed service(logic app) to send email.
+	- but if we have our own SMTP servers and we want to use themfor email notification then we create new app to send email.
+
+7) Post Validation Queue: Holdsthe message that passes validation rules.
+
+8) Sync App: 
+	- Read message from the post validation queue
+	- Insert the normalized JSON object which is transformed data as data Asserts in Collibra Platform with the help of Collibra ingestion library.
+	- Simulation can also be done here before Actual inseration
+
+9) Simulation Errors or Sync Queue:
+	- This can hold the error(if any) during simulation process in Sync app which can be read later on by Blob Exporter and then to email notification can be sent
+	- this can also hold successful inseration details and can be used to notify users later on.
+===============================================================================================================================================================================================
