@@ -1,0 +1,174 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bookstore API",
+    "description": "API for managing a bookstore2 (Books, Authors, etc.)",
+    "version": "1.0.2"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v3",
+      "description": "Main API server"
+    }
+  ],
+  "paths": {
+    "/books": {
+      "get": {
+        "summary": "Get list of books3",
+        "description": "Retrieves all books available in the bookstore3.",
+        "responses": {
+          "200": {
+            "description": "A list of books3",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Book"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new book",
+        "description": "Adds a new book to the bookstore3.",
+        "requestBody": {
+          "description": "Book data to be added to the bookstore3.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Book"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Book created successfully"
+          },
+          "400": {
+            "description": "Invalid request body"
+          }
+        }
+      }
+    },
+    "/books/{bookId}": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "bookId",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "description": "The ID of the book3 to retrieve or update."
+        }
+      ],
+      "get": {
+        "summary": "Get a single book",
+        "description": "Retrieves a specific book by ID.",
+        "responses": {
+          "200": {
+            "description": "A single book",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Book not found"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update an existing book",
+        "description": "Updates a book's details in the bookstore.",
+        "requestBody": {
+          "description": "Updated book information.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Book"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Book updated successfully"
+          },
+          "400": {
+            "description": "Invalid request body"
+          },
+          "404": {
+            "description": "Book not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a book",
+        "description": "Deletes a specific book from the bookstore.",
+        "responses": {
+          "204": {
+            "description": "Book deleted successfully"
+          },
+          "404": {
+            "description": "Book not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "The unique identifier for a book"
+          },
+          "title": {
+            "type": "string",
+            "description": "The title of the book"
+          },
+          "author": {
+            "type": "string",
+            "description": "The author of the book"
+          },
+          "publishedDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The publication date of the book"
+          },
+          "isbn": {
+            "type": "string",
+            "description": "The ISBN number of the book"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "author"
+        ]
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Resource not found"
+      },
+      "InternalServerError": {
+        "description": "Internal server error"
+      }
+    }
+  }
+}
