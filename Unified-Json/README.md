@@ -22,10 +22,4 @@ Before installing, ensure you have the following:
 - **Maven** for managing dependencies
 - **IDE** like IntelliJ IDEA 
 
-### Clone the Repository
 
-To get started, first clone the repository:
-
-```bash
-git clone https://github.com/Kiransripada007/Unified-Json.git
-cd Unified-Json
