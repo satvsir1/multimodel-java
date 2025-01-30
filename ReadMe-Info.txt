@@ -219,3 +219,9 @@ Suggested Variable Group Configuration in Azure DevOps:
 - containerRegistry: Container registry URL
 - environmentName: Target deployment environment
 ===============================================================================================================================================
+
+mvn install:install-file -Dfile=collibra-integration-library-1.2.1.jar \
+                         -DgroupId=com.collibra.marketplace \
+                         -DartifactId=collibra-integration-library \
+                         -Dversion=1.2.1 \
+                         -Dpackaging=jar
